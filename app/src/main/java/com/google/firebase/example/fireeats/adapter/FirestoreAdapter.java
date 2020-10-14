@@ -15,12 +15,18 @@
  */
  package com.google.firebase.example.fireeats.adapter;
 
+import android.util.Log;
+
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 
@@ -35,7 +41,9 @@ import java.util.ArrayList;
  * more efficient implementation of a Firestore RecyclerView Adapter.
  */
 public abstract class FirestoreAdapter<VH extends RecyclerView.ViewHolder>
-        extends RecyclerView.Adapter<VH> {
+        extends RecyclerView.Adapter<VH>
+        implements EventListener<QuerySnapshot> {
+
 
     private static final String TAG = "Firestore Adapter";
 
@@ -48,8 +56,68 @@ public abstract class FirestoreAdapter<VH extends RecyclerView.ViewHolder>
         mQuery = query;
     }
 
+
+    @Override
+    public void onEvent(QuerySnapshot documentSnapshots,
+                        FirebaseFirestoreException e) {
+
+        //Tangani kesalahan
+        if (e != null) {
+            Log.w(TAG, "onEvent:error", e);
+            return;
+        }
+
+        // Mengirim peristiwa
+        for (DocumentChange change : documentSnapshots.getDocumentChanges()) {
+            // Cuplikan dari dokumen yang diubah
+            DocumentSnapshot snapshot = change.getDocument();
+
+            switch (change.getType()) {
+                case ADDED:
+                    onDocumentAdded(change);
+                    break;
+                case MODIFIED:
+                    onDocumentModified(change);
+                    break;
+                case REMOVED:
+                    onDocumentRemoved(change);
+                    break;
+            }
+        }
+
+        onDataChanged();
+
+    }
+
+    protected void onDocumentAdded(DocumentChange change) {
+        mSnapshots.add(change.getNewIndex(), change.getDocument());
+        notifyItemInserted(change.getNewIndex());
+    }
+
+    protected void onDocumentModified(DocumentChange change) {
+        if (change.getOldIndex() == change.getNewIndex()) {
+            // Item berubah tetapi tetap di posisi yang sama
+            mSnapshots.set(change.getOldIndex(), change.getDocument());
+            notifyItemChanged(change.getOldIndex());
+        } else {
+            // Item diubah dan posisi berubah
+            mSnapshots.remove(change.getOldIndex());
+            mSnapshots.add(change.getNewIndex(), change.getDocument());
+            notifyItemMoved(change.getOldIndex(), change.getNewIndex());
+        }
+    }
+
+    protected void onDocumentRemoved(DocumentChange change) {
+        mSnapshots.remove(change.getOldIndex());
+        notifyItemRemoved(change.getOldIndex());
+    }
+
+
+
     public void startListening() {
-        // TODO(developer): Implement
+        if (mQuery != null && mRegistration == null) {
+            mRegistration = mQuery.addSnapshotListener(this);
+        }
     }
 
     public void stopListening() {
@@ -88,3 +156,5 @@ public abstract class FirestoreAdapter<VH extends RecyclerView.ViewHolder>
 
     protected void onDataChanged() {}
 }
+
+

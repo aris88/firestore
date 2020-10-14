@@ -19,11 +19,19 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
     // Firestore
     implementation 'com.google.firebase:firebase-firestore:21.7.1'
+
+    implementation 'com.google.gms:google-services:4.3.4'
+    implementation 'com.google.firebase:firebase-bom:25.12.0'
 
     // Other Firebase/Play services deps
     implementation 'com.google.firebase:firebase-auth:19.4.0'
