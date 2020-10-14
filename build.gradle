@@ -38,7 +38,7 @@ allprojects {
         }
     }
 
-    dependencyUpdates {
+    dependencyUpdates { 
         rejectVersionIf {
             isNonStable(it.candidate) || isBlackListed(it.candidate)
         }
